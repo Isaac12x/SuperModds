@@ -21,14 +21,14 @@
     "items": [
       {
         "label": "Create Supermodds post",
-        "description": "supermodds",
+        "description": "Create the Supermodds moderator dashboard custom post.",
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/create-post"
       },
       {
         "label": "Create moderator note",
-        "description": "Open the starter registered tool form",
+        "description": "Open the starter form action used as the pattern for future moderator workflows.",
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/starter-note"
@@ -52,61 +52,66 @@
     "global": {
       "openaiApiKey": {
         "type": "string",
-        "label": "OpenAI API Key",
+        "label": "OpenAI API key for copyright and +18 image scans",
         "defaultValue": "",
         "isSecret": true
       },
       "copyrightScanModel": {
         "type": "string",
-        "label": "Copyright scan model",
+        "label": "OpenAI model for the Copyright Material Filter",
         "defaultValue": "gpt-4.1-mini"
       },
       "adultImageScanModel": {
         "type": "string",
-        "label": "+18 image scan model",
+        "label": "OpenAI model for the +18 Image Review Filter",
         "defaultValue": "gpt-4.1-mini"
       }
     },
     "subreddit": {
       "copyrightMaterialFilterEnabled": {
         "type": "boolean",
-        "label": "Enable copyright material filter",
+        "label": "Enable Copyright Material Filter on new posts and comments",
         "defaultValue": true
       },
       "adultImageReviewFilterEnabled": {
         "type": "boolean",
-        "label": "Enable +18 image review filter",
+        "label": "Enable +18 Image Review Filter on new posts and comments",
         "defaultValue": true
       },
       "newSubredditBotGuardEnabled": {
         "type": "boolean",
-        "label": "Enable new subreddit bot guard",
+        "label": "Enable New Subreddit Bot Guard on new posts and comments",
         "defaultValue": true
       },
       "newSubredditBotGuardAccountAgeDays": {
         "type": "number",
-        "label": "Bot guard account age threshold in days",
+        "label": "Bot Guard low-trust account-age threshold in days",
         "defaultValue": 7
       },
       "newSubredditBotGuardMinCombinedKarma": {
         "type": "number",
-        "label": "Bot guard minimum combined karma",
+        "label": "Bot Guard low-trust combined-karma threshold",
         "defaultValue": 25
       },
       "newSubredditBotGuardFirstSeenHours": {
         "type": "number",
-        "label": "Bot guard first-seen monitoring window in hours",
+        "label": "Bot Guard first-seen monitoring window in hours",
         "defaultValue": 24
       },
       "newSubredditBotGuardWindowMinutes": {
         "type": "number",
-        "label": "Bot guard activity window in minutes",
+        "label": "Bot Guard burst activity window in minutes",
         "defaultValue": 10
       },
       "newSubredditBotGuardMaxItemsPerWindow": {
         "type": "number",
-        "label": "Bot guard maximum items per window",
+        "label": "Bot Guard maximum posts/comments per activity window",
         "defaultValue": 3
+      },
+      "modmailSpamCloserEnabled": {
+        "type": "boolean",
+        "label": "Enable Modmail Spam Closer on modmail events",
+        "defaultValue": true
       }
     }
   },
@@ -114,7 +119,8 @@
     "onAppInstall": "/internal/triggers/on-app-install",
     "onPostSubmit": "/internal/triggers/on-post-submit",
     "onCommentSubmit": "/internal/triggers/on-comment-submit",
-    "onPostUpdate": "/internal/triggers/on-post-update"
+    "onPostUpdate": "/internal/triggers/on-post-update",
+    "onModMail": "/internal/triggers/on-modmail"
   },
   "scripts": {
     "dev": "vite build --watch",

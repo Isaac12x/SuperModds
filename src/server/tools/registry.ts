@@ -11,6 +11,7 @@ import {
   REDACTED_EDIT_REPORT_REASON,
 } from './redactedEditReporter';
 import { NEW_SUBREDDIT_BOT_GUARD_REASON } from './newSubredditBotGuard';
+import { MODMAIL_SPAM_CLOSER_REASON } from './modmailSpamCloser';
 
 type ToolMenuAction = {
   endpoint: string;
@@ -105,6 +106,13 @@ export const modTools: RegisteredModTool[] = [
     id: 'new-subreddit-bot-guard',
     title: 'New Subreddit Bot Guard',
     description: `Filters bursty posts and comments from newly seen, low-trust accounts into the mod queue. Filter reason: ${NEW_SUBREDDIT_BOT_GUARD_REASON}.`,
+    category: 'workflow',
+    launchMode: 'trigger',
+  },
+  {
+    id: 'modmail-spam-closer',
+    title: 'Modmail Spam Closer',
+    description: `Automatically archives bot appeals and spammy modmail conversations from user participants, leaving an internal audit note. Close reason: ${MODMAIL_SPAM_CLOSER_REASON}.`,
     category: 'workflow',
     launchMode: 'trigger',
   },
