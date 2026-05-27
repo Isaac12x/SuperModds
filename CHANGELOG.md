@@ -20,3 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Redacted edit reporter trigger for flagging older post edits that remove meaningful word content.
 - Registered moderator tool architecture for Devvit menu actions, forms, and dashboard metadata.
 - User Workflow Builder for moderator-configured post, comment, and subcomment keyword workflows.
+
+### Changed
+
+- OpenAI API key configuration now relies on a private global app secret without a shipped default value so Devvit publish validation passes.

@@ -310,9 +310,11 @@ The Devvit app configuration in `devvit.json` currently registers:
 
 ## Settings
 
-Global settings:
+Global app settings:
 
 - `openaiApiKey`: secret OpenAI API key for OpenAI-backed moderation scans.
+  This is configured privately on the app after upload and is not included as a
+  value in `devvit.json`.
 - `copyrightScanModel`: model for the Copyright Material Filter.
 - `adultImageScanModel`: model for the +18 Image Review Filter.
 
@@ -331,7 +333,7 @@ Subreddit settings:
 - `postFrequencyLimiterWindowHours`
 - `modmailSpamCloserEnabled`
 
-To set the OpenAI API key after the app is built and installed:
+To set the OpenAI API key after the app is built and uploaded:
 
 ```sh
 npx devvit settings set openaiApiKey

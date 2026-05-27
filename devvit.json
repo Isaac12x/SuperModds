@@ -77,7 +77,6 @@
       "openaiApiKey": {
         "type": "string",
         "label": "OpenAI API key for copyright and +18 image scans",
-        "defaultValue": "",
         "isSecret": true
       },
       "copyrightScanModel": {
