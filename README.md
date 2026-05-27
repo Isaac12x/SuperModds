@@ -132,6 +132,35 @@ Configuration:
 - `newSubredditBotGuardWindowMinutes`: activity-count window in minutes.
 - `newSubredditBotGuardMaxItemsPerWindow`: allowed items per activity window.
 
+### Post Frequency Limiter
+
+Trigger event: `PostSubmit`
+
+The Post Frequency Limiter restricts each user to a configured number of posts
+inside a rolling subreddit-specific time window.
+
+Current behavior:
+
+- Tracks submitted posts per subreddit and author in Redis.
+- Uses a true rolling time window, not a fixed calendar bucket.
+- Filters excess posts when the author exceeds the configured post limit.
+- Filters matching posts with this reason:
+
+```text
+Post frequency limiter: user exceeded subreddit posting limit
+```
+
+- Deduplicates filtered posts for 30 days in Redis.
+- Runs before the New Subreddit Bot Guard and OpenAI-backed post filters. If it
+  filters the post, the other post-submit filters are skipped for that event.
+- Can be disabled per subreddit with `postFrequencyLimiterEnabled`.
+
+Configuration:
+
+- `postFrequencyLimiterEnabled`: enables or disables the limiter.
+- `postFrequencyLimiterMaxPosts`: maximum allowed posts per user.
+- `postFrequencyLimiterWindowHours`: rolling time window in hours.
+
 ### Redacted Edit Reporter
 
 Trigger event: `PostUpdate`
@@ -218,6 +247,9 @@ Subreddit settings:
 - `newSubredditBotGuardFirstSeenHours`
 - `newSubredditBotGuardWindowMinutes`
 - `newSubredditBotGuardMaxItemsPerWindow`
+- `postFrequencyLimiterEnabled`
+- `postFrequencyLimiterMaxPosts`
+- `postFrequencyLimiterWindowHours`
 - `modmailSpamCloserEnabled`
 
 To set the OpenAI API key after the app is built and installed:

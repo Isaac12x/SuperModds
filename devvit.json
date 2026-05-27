@@ -108,6 +108,21 @@
         "label": "Bot Guard maximum posts/comments per activity window",
         "defaultValue": 3
       },
+      "postFrequencyLimiterEnabled": {
+        "type": "boolean",
+        "label": "Enable Post Frequency Limiter on new posts",
+        "defaultValue": true
+      },
+      "postFrequencyLimiterMaxPosts": {
+        "type": "number",
+        "label": "Post Frequency Limiter maximum posts per user",
+        "defaultValue": 3
+      },
+      "postFrequencyLimiterWindowHours": {
+        "type": "number",
+        "label": "Post Frequency Limiter rolling window in hours",
+        "defaultValue": 24
+      },
       "modmailSpamCloserEnabled": {
         "type": "boolean",
         "label": "Enable Modmail Spam Closer on modmail events",

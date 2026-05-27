@@ -21,6 +21,7 @@ import {
   handleNewSubredditBotGuardCommentSubmit,
   handleNewSubredditBotGuardPostSubmit,
 } from '../tools/newSubredditBotGuard';
+import { handlePostFrequencyLimiterPostSubmit } from '../tools/postFrequencyLimiter';
 import { handleModmailSpamCloser } from '../tools/modmailSpamCloser';
 import { handleRedactedPostUpdate } from '../tools/redactedEditReporter';
 
@@ -53,6 +54,18 @@ triggers.post('/on-app-install', async (c) => {
 triggers.post('/on-post-submit', async (c) => {
   try {
     const input = await c.req.json<OnPostSubmitRequest>();
+    const frequencyLimitResult = await handlePostFrequencyLimiterPostSubmit(input);
+
+    if (frequencyLimitResult.status === 'filtered') {
+      return c.json<TriggerResponse>(
+        {
+          status: 'success',
+          message: `Post frequency limiter filtered: ${frequencyLimitResult.reason}`,
+        },
+        200
+      );
+    }
+
     const botGuardResult = await handleNewSubredditBotGuardPostSubmit(input);
 
     if (botGuardResult.status === 'filtered') {
@@ -74,6 +87,7 @@ triggers.post('/on-post-submit', async (c) => {
       {
         status: 'success',
         message:
+          `Post frequency limiter ${frequencyLimitResult.status}: ${frequencyLimitResult.reason}; ` +
           `New subreddit bot guard ${botGuardResult.status}: ${botGuardResult.reason}; ` +
           `Copyright material filter ${copyrightResult.status}: ${copyrightResult.reason}; ` +
           `+18 image review filter ${adultImageResult.status}: ${adultImageResult.reason}`,

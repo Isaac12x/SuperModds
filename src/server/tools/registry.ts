@@ -12,6 +12,7 @@ import {
 } from './redactedEditReporter';
 import { NEW_SUBREDDIT_BOT_GUARD_REASON } from './newSubredditBotGuard';
 import { MODMAIL_SPAM_CLOSER_REASON } from './modmailSpamCloser';
+import { POST_FREQUENCY_LIMITER_REASON } from './postFrequencyLimiter';
 
 type ToolMenuAction = {
   endpoint: string;
@@ -106,6 +107,13 @@ export const modTools: RegisteredModTool[] = [
     id: 'new-subreddit-bot-guard',
     title: 'New Subreddit Bot Guard',
     description: `Filters bursty posts and comments from newly seen, low-trust accounts into the mod queue. Filter reason: ${NEW_SUBREDDIT_BOT_GUARD_REASON}.`,
+    category: 'workflow',
+    launchMode: 'trigger',
+  },
+  {
+    id: 'post-frequency-limiter',
+    title: 'Post Frequency Limiter',
+    description: `Restricts each user to the configured number of posts in a rolling time window, then filters excess posts into the mod queue. Filter reason: ${POST_FREQUENCY_LIMITER_REASON}.`,
     category: 'workflow',
     launchMode: 'trigger',
   },

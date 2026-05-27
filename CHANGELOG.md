@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Devvit settings and HTTP fetch configuration for the copyright material filter's external API.
 - Modmail spam closer trigger for archiving bot appeals and spammy user modmail with an internal audit note.
 - New subreddit bot guard trigger for filtering bursty posts and comments from newly seen, low-trust accounts.
+- Post frequency limiter trigger for restricting users to a configured number of posts in a rolling time window.
 - README documentation for the Redacted Edit Reporter and moderator usage workflow.
 - Redacted edit reporter trigger for flagging older post edits that remove meaningful word content.
 - Registered moderator tool architecture for Devvit menu actions, forms, and dashboard metadata.
