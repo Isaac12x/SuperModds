@@ -1,5 +1,6 @@
 import type { OnPostSubmitRequest, PostV2 } from '@devvit/web/shared';
 import { context, reddit, redis, settings } from '@devvit/web/server';
+import type { Form } from '@devvit/shared-types/shared/form.js';
 import {
   T2 as asT2ID,
   T3 as asT3ID,
@@ -23,6 +24,7 @@ const HOUR_IN_MS = 60 * 60 * 1000;
 
 const DEFAULT_MAX_POSTS = 3;
 const DEFAULT_WINDOW_HOURS = 24;
+const CONFIG_KEY = 'post-frequency-limiter:config';
 
 type FrequencyLimitResult = {
   status: 'filtered' | 'skipped';
@@ -32,8 +34,15 @@ type FrequencyLimitResult = {
 };
 
 type FrequencyLimiterSettings = {
+  enabled: boolean;
   maxPosts: number;
   windowHours: number;
+};
+
+type FrequencyLimiterFormValues = {
+  enabled?: boolean;
+  maxPosts?: number;
+  windowHours?: number;
 };
 
 type SubmittedPost = {
@@ -55,9 +64,44 @@ const isPostFrequencyLimiterEnabled = async () => {
   return typeof value === 'boolean' ? value : true;
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const positiveInteger = (value: unknown, fallback: number) =>
+  typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? Math.max(1, Math.floor(value))
+    : fallback;
+
+const parseConfig = (
+  value: string | undefined,
+  fallback: FrequencyLimiterSettings
+): FrequencyLimiterSettings => {
+  if (!value) {
+    return fallback;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+
+    if (!isRecord(parsed)) {
+      return fallback;
+    }
+
+    return {
+      enabled:
+        typeof parsed.enabled === 'boolean' ? parsed.enabled : fallback.enabled,
+      maxPosts: positiveInteger(parsed.maxPosts, fallback.maxPosts),
+      windowHours: positiveInteger(parsed.windowHours, fallback.windowHours),
+    };
+  } catch {
+    return fallback;
+  }
+};
+
 const getFrequencyLimiterSettings =
   async (): Promise<FrequencyLimiterSettings> => {
-    const [maxPosts, windowHours] = await Promise.all([
+    const [enabled, maxPosts, windowHours] = await Promise.all([
+      isPostFrequencyLimiterEnabled(),
       getSettingNumber(
         POST_FREQUENCY_LIMITER_MAX_POSTS_SETTING,
         DEFAULT_MAX_POSTS
@@ -68,11 +112,18 @@ const getFrequencyLimiterSettings =
       ),
     ]);
 
-    return {
+    const settingsConfig = {
+      enabled,
       maxPosts,
       windowHours,
     };
+
+    return parseConfig(await redis.get(CONFIG_KEY), settingsConfig);
   };
+
+const saveConfig = async (config: FrequencyLimiterSettings) => {
+  await redis.set(CONFIG_KEY, JSON.stringify(config));
+};
 
 const getPostId = (post: PostV2 | undefined) => {
   const rawPostId = post?.id;
@@ -182,7 +233,9 @@ const filterPost = async (
 const handleSubmittedPost = async (
   submittedPost: SubmittedPost | undefined
 ): Promise<FrequencyLimitResult> => {
-  if (!(await isPostFrequencyLimiterEnabled())) {
+  const limiterSettings = await getFrequencyLimiterSettings();
+
+  if (!limiterSettings.enabled) {
     return {
       status: 'skipped',
       reason: 'post frequency limiter is disabled for this subreddit',
@@ -203,7 +256,6 @@ const handleSubmittedPost = async (
     };
   }
 
-  const limiterSettings = await getFrequencyLimiterSettings();
   const postCount = await recordPostAndGetCount(
     submittedPost,
     context.subredditName,
@@ -229,3 +281,59 @@ const handleSubmittedPost = async (
 export const handlePostFrequencyLimiterPostSubmit = async (
   input: OnPostSubmitRequest
 ) => handleSubmittedPost(await getSubmittedPost(input.post));
+
+const buildPostFrequencyLimiterForm = (
+  config: FrequencyLimiterSettings
+): Form => ({
+  title: 'Configure post frequency limiter',
+  description:
+    'Restrict each user to a configured number of posts inside a rolling subreddit-specific time window.',
+  acceptLabel: 'Save limiter',
+  cancelLabel: 'Cancel',
+  fields: [
+    {
+      type: 'boolean',
+      name: 'enabled',
+      label: 'Enable post frequency limiter',
+      defaultValue: config.enabled,
+      helpText: 'Filters excess posts into the mod queue.',
+    },
+    {
+      type: 'number',
+      name: 'maxPosts',
+      label: 'Maximum posts per user',
+      defaultValue: config.maxPosts,
+      helpText: 'The number of posts allowed before new posts are filtered.',
+    },
+    {
+      type: 'number',
+      name: 'windowHours',
+      label: 'Rolling window in hours',
+      defaultValue: config.windowHours,
+      helpText: 'The time period used for counting each user\'s posts.',
+    },
+  ],
+});
+
+export const postFrequencyLimiterForm = buildPostFrequencyLimiterForm({
+  enabled: true,
+  maxPosts: DEFAULT_MAX_POSTS,
+  windowHours: DEFAULT_WINDOW_HOURS,
+});
+
+export const openPostFrequencyLimiterForm = async () =>
+  buildPostFrequencyLimiterForm(await getFrequencyLimiterSettings());
+
+export const savePostFrequencyLimiterForm = async (
+  values: FrequencyLimiterFormValues
+) => {
+  const config = {
+    enabled: values.enabled === true,
+    maxPosts: positiveInteger(values.maxPosts, DEFAULT_MAX_POSTS),
+    windowHours: positiveInteger(values.windowHours, DEFAULT_WINDOW_HOURS),
+  };
+
+  await saveConfig(config);
+
+  return config;
+};

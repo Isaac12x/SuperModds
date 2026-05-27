@@ -39,12 +39,28 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/user-workflow-builder"
+      },
+      {
+        "label": "Configure post frequency limiter",
+        "description": "Restrict users to a configured number of posts inside a rolling time frame.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/post-frequency-limiter"
+      },
+      {
+        "label": "Configure moderator permission chain",
+        "description": "Assign full permissions to a remaining moderator when the chain rules match.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/moderator-permission-chain"
       }
     ]
   },
   "forms": {
     "starterNoteForm": "/internal/form/starterNoteForm",
-    "userWorkflowForm": "/internal/form/userWorkflowForm"
+    "userWorkflowForm": "/internal/form/userWorkflowForm",
+    "postFrequencyLimiterForm": "/internal/form/postFrequencyLimiterForm",
+    "moderatorPermissionChainForm": "/internal/form/moderatorPermissionChainForm"
   },
   "permissions": {
     "http": {
@@ -135,6 +151,16 @@
         "type": "boolean",
         "label": "Enable Modmail Spam Closer on modmail events",
         "defaultValue": true
+      },
+      "moderatorPermissionChainEnabled": {
+        "type": "boolean",
+        "label": "Enable Moderator Permission Chain",
+        "defaultValue": false
+      },
+      "moderatorPermissionChainInactivityDays": {
+        "type": "number",
+        "label": "Moderator Permission Chain inactive period in days",
+        "defaultValue": 90
       }
     }
   },
@@ -143,7 +169,8 @@
     "onPostSubmit": "/internal/triggers/on-post-submit",
     "onCommentSubmit": "/internal/triggers/on-comment-submit",
     "onPostUpdate": "/internal/triggers/on-post-update",
-    "onModMail": "/internal/triggers/on-modmail"
+    "onModMail": "/internal/triggers/on-modmail",
+    "onModAction": "/internal/triggers/on-mod-action"
   },
   "scripts": {
     "dev": "vite build --watch",

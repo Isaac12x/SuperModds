@@ -18,7 +18,18 @@ import {
   userWorkflowForm,
   USER_WORKFLOW_BUILDER_REASON,
 } from './userWorkflowBuilder';
-import { POST_FREQUENCY_LIMITER_REASON } from './postFrequencyLimiter';
+import {
+  openPostFrequencyLimiterForm,
+  postFrequencyLimiterForm,
+  POST_FREQUENCY_LIMITER_REASON,
+  savePostFrequencyLimiterForm,
+} from './postFrequencyLimiter';
+import {
+  MODERATOR_PERMISSION_CHAIN_REASON,
+  moderatorPermissionChainForm,
+  openModeratorPermissionChainForm,
+  saveModeratorPermissionChainForm,
+} from './moderatorPermissionChain';
 
 type ToolMenuAction = {
   endpoint: string;
@@ -50,6 +61,18 @@ type UserWorkflowFormValues = {
   subcommentKeywords?: string;
   subcommentAction?: string[];
   joinWorkflowStatus?: string;
+};
+
+type PostFrequencyLimiterFormValues = {
+  enabled?: boolean;
+  maxPosts?: number;
+  windowHours?: number;
+};
+
+type ModeratorPermissionChainFormValues = {
+  enabled?: boolean;
+  inactivityDays?: number;
+  runCheckNow?: boolean;
 };
 
 const starterNoteForm: Form = {
@@ -130,9 +153,81 @@ export const modTools: RegisteredModTool[] = [
   {
     id: 'post-frequency-limiter',
     title: 'Post Frequency Limiter',
-    description: `Restricts each user to the configured number of posts in a rolling time window, then filters excess posts into the mod queue. Filter reason: ${POST_FREQUENCY_LIMITER_REASON}.`,
+    description: `Restricts each user to the configured number of posts in a rolling time window, then filters excess posts into the mod queue. Open the form to configure the limit and time frame. Filter reason: ${POST_FREQUENCY_LIMITER_REASON}.`,
     category: 'workflow',
-    launchMode: 'trigger',
+    launchMode: 'form',
+    menu: {
+      endpoint: '/internal/menu/post-frequency-limiter',
+      handle: async () =>
+        Response.json(
+          {
+            showForm: {
+              name: 'postFrequencyLimiterForm',
+              form: await openPostFrequencyLimiterForm(),
+            },
+          } satisfies UiResponse,
+          { status: 200 }
+        ),
+    },
+    form: {
+      name: 'postFrequencyLimiterForm',
+      endpoint: '/internal/form/postFrequencyLimiterForm',
+      form: postFrequencyLimiterForm,
+      handle: async (c) => {
+        const values = await c.req.json<PostFrequencyLimiterFormValues>();
+        const config = await savePostFrequencyLimiterForm(values);
+
+        return Response.json(
+          {
+            showToast: config.enabled
+              ? `Post limiter enabled: ${config.maxPosts} posts per ${config.windowHours} hours`
+              : 'Post limiter disabled',
+          } satisfies UiResponse,
+          { status: 200 }
+        );
+      },
+    },
+  },
+  {
+    id: 'moderator-permission-chain',
+    title: 'Moderator Permission Chain',
+    description: `Assigns full moderator permissions to a remaining moderator when no current moderator has full permissions, or when all current moderators are inactive for the configured period. Assignment reason: ${MODERATOR_PERMISSION_CHAIN_REASON}.`,
+    category: 'workflow',
+    launchMode: 'form',
+    menu: {
+      endpoint: '/internal/menu/moderator-permission-chain',
+      handle: async () =>
+        Response.json(
+          {
+            showForm: {
+              name: 'moderatorPermissionChainForm',
+              form: await openModeratorPermissionChainForm(),
+            },
+          } satisfies UiResponse,
+          { status: 200 }
+        ),
+    },
+    form: {
+      name: 'moderatorPermissionChainForm',
+      endpoint: '/internal/form/moderatorPermissionChainForm',
+      form: moderatorPermissionChainForm,
+      handle: async (c) => {
+        const values = await c.req.json<ModeratorPermissionChainFormValues>();
+        const saved = await saveModeratorPermissionChainForm(values);
+        const suffix = saved.result
+          ? `; check ${saved.result.status}: ${saved.result.reason}`
+          : '';
+
+        return Response.json(
+          {
+            showToast: saved.config.enabled
+              ? `Moderator permission chain enabled for ${saved.config.inactivityDays} days${suffix}`
+              : `Moderator permission chain disabled${suffix}`,
+          } satisfies UiResponse,
+          { status: 200 }
+        );
+      },
+    },
   },
   {
     id: 'modmail-spam-closer',

@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type {
   OnAppInstallRequest,
   OnCommentSubmitRequest,
+  OnModActionRequest,
   OnModMailRequest,
   OnPostSubmitRequest,
   OnPostUpdateRequest,
@@ -24,6 +25,7 @@ import {
 import { handlePostFrequencyLimiterPostSubmit } from '../tools/postFrequencyLimiter';
 import { handleModmailSpamCloser } from '../tools/modmailSpamCloser';
 import { handleRedactedPostUpdate } from '../tools/redactedEditReporter';
+import { handleModeratorPermissionChainModAction } from '../tools/moderatorPermissionChain';
 import {
   handleUserWorkflowCommentSubmit,
   handleUserWorkflowPostSubmit,
@@ -225,6 +227,30 @@ triggers.post('/on-modmail', async (c) => {
       {
         status: 'error',
         message: 'Failed to process modmail',
+      },
+      400
+    );
+  }
+});
+
+triggers.post('/on-mod-action', async (c) => {
+  try {
+    const input = await c.req.json<OnModActionRequest>();
+    const result = await handleModeratorPermissionChainModAction(input);
+
+    return c.json<TriggerResponse>(
+      {
+        status: 'success',
+        message: `Moderator permission chain ${result.status}: ${result.reason}`,
+      },
+      200
+    );
+  } catch (error) {
+    console.error(`Error processing mod action: ${error}`);
+    return c.json<TriggerResponse>(
+      {
+        status: 'error',
+        message: 'Failed to process mod action',
       },
       400
     );

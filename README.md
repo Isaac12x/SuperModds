@@ -135,6 +135,7 @@ Configuration:
 ### Post Frequency Limiter
 
 Trigger event: `PostSubmit`
+Menu action: `Configure post frequency limiter`
 
 The Post Frequency Limiter restricts each user to a configured number of posts
 inside a rolling subreddit-specific time window.
@@ -154,12 +155,53 @@ Post frequency limiter: user exceeded subreddit posting limit
 - Runs before the New Subreddit Bot Guard and OpenAI-backed post filters. If it
   filters the post, the other post-submit filters are skipped for that event.
 - Can be disabled per subreddit with `postFrequencyLimiterEnabled`.
+- Moderators can open the configuration form to set the max post count and
+  rolling window without editing app settings directly.
 
 Configuration:
 
 - `postFrequencyLimiterEnabled`: enables or disables the limiter.
 - `postFrequencyLimiterMaxPosts`: maximum allowed posts per user.
 - `postFrequencyLimiterWindowHours`: rolling time window in hours.
+
+### Moderator Permission Chain
+
+Menu action: `Configure moderator permission chain`
+Trigger event: `ModAction`
+
+The Moderator Permission Chain assigns full moderator permissions to a remaining
+moderator when the current moderation chain needs a successor.
+
+Current behavior:
+
+- Stores chain configuration in Redis for the subreddit installation.
+- Defaults to disabled with a 90-day inactivity window.
+- Checks the current moderator list and each moderator's permissions.
+- Assigns full permissions to a remaining moderator when no current human
+  moderator has full permissions.
+- Assigns full permissions to a remaining moderator when all current human
+  moderators have no mod-log activity inside the configured inactivity period.
+- Runs on moderator-list and permission-related mod actions, and can also run
+  immediately when the configuration form is saved with `Run a chain check after
+  saving`.
+- Ignores AutoModerator when selecting a human successor.
+
+Assignment reason:
+
+```text
+Moderator permission chain: assigned full permissions to remaining moderator
+```
+
+Configuration:
+
+- `moderatorPermissionChainEnabled`: default enablement for the chain.
+- `moderatorPermissionChainInactivityDays`: inactivity threshold in days.
+
+Limitation:
+
+- Devvit Web app manifests do not currently provide a scheduled trigger, so the
+  inactivity check runs when a relevant mod action occurs or when a moderator
+  manually runs the check from the form.
 
 ### Redacted Edit Reporter
 
@@ -251,15 +293,20 @@ The Devvit app configuration in `devvit.json` currently registers:
   - `Create Supermodds post`
   - `Create moderator note`
   - `Configure user workflows`
+  - `Configure post frequency limiter`
+  - `Configure moderator permission chain`
 - Form:
   - `starterNoteForm`
   - `userWorkflowForm`
+  - `postFrequencyLimiterForm`
+  - `moderatorPermissionChainForm`
 - Triggers:
   - `onAppInstall`
   - `onPostSubmit`
   - `onCommentSubmit`
   - `onPostUpdate`
   - `onModMail`
+  - `onModAction`
 
 ## Settings
 
