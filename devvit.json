@@ -60,12 +60,22 @@
         "type": "string",
         "label": "Copyright scan model",
         "defaultValue": "gpt-4.1-mini"
+      },
+      "adultImageScanModel": {
+        "type": "string",
+        "label": "+18 image scan model",
+        "defaultValue": "gpt-4.1-mini"
       }
     },
     "subreddit": {
       "copyrightMaterialFilterEnabled": {
         "type": "boolean",
         "label": "Enable copyright material filter",
+        "defaultValue": true
+      },
+      "adultImageReviewFilterEnabled": {
+        "type": "boolean",
+        "label": "Enable +18 image review filter",
         "defaultValue": true
       }
     }

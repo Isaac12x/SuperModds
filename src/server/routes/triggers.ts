@@ -9,6 +9,10 @@ import type {
 import { context } from '@devvit/web/server';
 import { createPost } from '../core/post';
 import {
+  handleAdultImageCommentSubmit,
+  handleAdultImagePostSubmit,
+} from '../tools/adultImageReviewFilter';
+import {
   handleCopyrightCommentSubmit,
   handleCopyrightPostSubmit,
 } from '../tools/copyrightMaterialFilter';
@@ -43,12 +47,17 @@ triggers.post('/on-app-install', async (c) => {
 triggers.post('/on-post-submit', async (c) => {
   try {
     const input = await c.req.json<OnPostSubmitRequest>();
-    const result = await handleCopyrightPostSubmit(input);
+    const [copyrightResult, adultImageResult] = await Promise.all([
+      handleCopyrightPostSubmit(input),
+      handleAdultImagePostSubmit(input),
+    ]);
 
     return c.json<TriggerResponse>(
       {
         status: 'success',
-        message: `Copyright material filter ${result.status}: ${result.reason}`,
+        message:
+          `Copyright material filter ${copyrightResult.status}: ${copyrightResult.reason}; ` +
+          `+18 image review filter ${adultImageResult.status}: ${adultImageResult.reason}`,
       },
       200
     );
@@ -67,12 +76,17 @@ triggers.post('/on-post-submit', async (c) => {
 triggers.post('/on-comment-submit', async (c) => {
   try {
     const input = await c.req.json<OnCommentSubmitRequest>();
-    const result = await handleCopyrightCommentSubmit(input);
+    const [copyrightResult, adultImageResult] = await Promise.all([
+      handleCopyrightCommentSubmit(input),
+      handleAdultImageCommentSubmit(input),
+    ]);
 
     return c.json<TriggerResponse>(
       {
         status: 'success',
-        message: `Copyright material filter ${result.status}: ${result.reason}`,
+        message:
+          `Copyright material filter ${copyrightResult.status}: ${copyrightResult.reason}; ` +
+          `+18 image review filter ${adultImageResult.status}: ${adultImageResult.reason}`,
       },
       200
     );

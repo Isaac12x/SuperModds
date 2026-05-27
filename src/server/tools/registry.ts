@@ -4,6 +4,7 @@ import type { UiResponse } from '@devvit/web/shared';
 import { context } from '@devvit/web/server';
 import type { ModToolDescriptor } from '../../shared/modTools';
 import { createPost } from '../core/post';
+import { ADULT_IMAGE_FILTER_REASON } from './adultImageReviewFilter';
 import { COPYRIGHT_FILTER_REASON } from './copyrightMaterialFilter';
 import {
   REDACTED_EDIT_MIN_POST_AGE_DAYS,
@@ -82,6 +83,13 @@ export const modTools: RegisteredModTool[] = [
     id: 'copyright-material-filter',
     title: 'Copyright Material Filter',
     description: `Uses the configured OpenAI API key to classify media posts and replies for copyright-review signals, then filters matches into the mod queue. Filter reason: ${COPYRIGHT_FILTER_REASON}.`,
+    category: 'workflow',
+    launchMode: 'trigger',
+  },
+  {
+    id: 'adult-image-review-filter',
+    title: '+18 Image Review Filter',
+    description: `Uses the configured OpenAI API key to classify image posts and image replies for potential +18 content, then filters matches into the needs review queue. Filter reason: ${ADULT_IMAGE_FILTER_REASON}.`,
     category: 'workflow',
     launchMode: 'trigger',
   },
