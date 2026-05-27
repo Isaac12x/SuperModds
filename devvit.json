@@ -77,6 +77,36 @@
         "type": "boolean",
         "label": "Enable +18 image review filter",
         "defaultValue": true
+      },
+      "newSubredditBotGuardEnabled": {
+        "type": "boolean",
+        "label": "Enable new subreddit bot guard",
+        "defaultValue": true
+      },
+      "newSubredditBotGuardAccountAgeDays": {
+        "type": "number",
+        "label": "Bot guard account age threshold in days",
+        "defaultValue": 7
+      },
+      "newSubredditBotGuardMinCombinedKarma": {
+        "type": "number",
+        "label": "Bot guard minimum combined karma",
+        "defaultValue": 25
+      },
+      "newSubredditBotGuardFirstSeenHours": {
+        "type": "number",
+        "label": "Bot guard first-seen monitoring window in hours",
+        "defaultValue": 24
+      },
+      "newSubredditBotGuardWindowMinutes": {
+        "type": "number",
+        "label": "Bot guard activity window in minutes",
+        "defaultValue": 10
+      },
+      "newSubredditBotGuardMaxItemsPerWindow": {
+        "type": "number",
+        "label": "Bot guard maximum items per window",
+        "defaultValue": 3
       }
     }
   },

@@ -16,6 +16,10 @@ import {
   handleCopyrightCommentSubmit,
   handleCopyrightPostSubmit,
 } from '../tools/copyrightMaterialFilter';
+import {
+  handleNewSubredditBotGuardCommentSubmit,
+  handleNewSubredditBotGuardPostSubmit,
+} from '../tools/newSubredditBotGuard';
 import { handleRedactedPostUpdate } from '../tools/redactedEditReporter';
 
 export const triggers = new Hono();
@@ -47,6 +51,18 @@ triggers.post('/on-app-install', async (c) => {
 triggers.post('/on-post-submit', async (c) => {
   try {
     const input = await c.req.json<OnPostSubmitRequest>();
+    const botGuardResult = await handleNewSubredditBotGuardPostSubmit(input);
+
+    if (botGuardResult.status === 'filtered') {
+      return c.json<TriggerResponse>(
+        {
+          status: 'success',
+          message: `New subreddit bot guard filtered: ${botGuardResult.reason}`,
+        },
+        200
+      );
+    }
+
     const [copyrightResult, adultImageResult] = await Promise.all([
       handleCopyrightPostSubmit(input),
       handleAdultImagePostSubmit(input),
@@ -56,6 +72,7 @@ triggers.post('/on-post-submit', async (c) => {
       {
         status: 'success',
         message:
+          `New subreddit bot guard ${botGuardResult.status}: ${botGuardResult.reason}; ` +
           `Copyright material filter ${copyrightResult.status}: ${copyrightResult.reason}; ` +
           `+18 image review filter ${adultImageResult.status}: ${adultImageResult.reason}`,
       },
@@ -76,6 +93,18 @@ triggers.post('/on-post-submit', async (c) => {
 triggers.post('/on-comment-submit', async (c) => {
   try {
     const input = await c.req.json<OnCommentSubmitRequest>();
+    const botGuardResult = await handleNewSubredditBotGuardCommentSubmit(input);
+
+    if (botGuardResult.status === 'filtered') {
+      return c.json<TriggerResponse>(
+        {
+          status: 'success',
+          message: `New subreddit bot guard filtered: ${botGuardResult.reason}`,
+        },
+        200
+      );
+    }
+
     const [copyrightResult, adultImageResult] = await Promise.all([
       handleCopyrightCommentSubmit(input),
       handleAdultImageCommentSubmit(input),
@@ -85,6 +114,7 @@ triggers.post('/on-comment-submit', async (c) => {
       {
         status: 'success',
         message:
+          `New subreddit bot guard ${botGuardResult.status}: ${botGuardResult.reason}; ` +
           `Copyright material filter ${copyrightResult.status}: ${copyrightResult.reason}; ` +
           `+18 image review filter ${adultImageResult.status}: ${adultImageResult.reason}`,
       },

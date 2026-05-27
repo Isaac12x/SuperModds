@@ -10,6 +10,7 @@ import {
   REDACTED_EDIT_MIN_POST_AGE_DAYS,
   REDACTED_EDIT_REPORT_REASON,
 } from './redactedEditReporter';
+import { NEW_SUBREDDIT_BOT_GUARD_REASON } from './newSubredditBotGuard';
 
 type ToolMenuAction = {
   endpoint: string;
@@ -97,6 +98,13 @@ export const modTools: RegisteredModTool[] = [
     id: 'redacted-edit-reporter',
     title: 'Redacted Edit Reporter',
     description: `Automatically reports edits to posts older than ${REDACTED_EDIT_MIN_POST_AGE_DAYS} days when the new body contains no meaningful word content. Report reason: ${REDACTED_EDIT_REPORT_REASON}.`,
+    category: 'workflow',
+    launchMode: 'trigger',
+  },
+  {
+    id: 'new-subreddit-bot-guard',
+    title: 'New Subreddit Bot Guard',
+    description: `Filters bursty posts and comments from newly seen, low-trust accounts into the mod queue. Filter reason: ${NEW_SUBREDDIT_BOT_GUARD_REASON}.`,
     category: 'workflow',
     launchMode: 'trigger',
   },
