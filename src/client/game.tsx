@@ -22,6 +22,7 @@ const categoryLabels: Record<ModToolDescriptor['category'], string> = {
 const launchLabels: Record<ModToolDescriptor['launchMode'], string> = {
   menu: 'Menu action',
   form: 'Form action',
+  trigger: 'Automatic trigger',
 };
 
 export const App = () => {

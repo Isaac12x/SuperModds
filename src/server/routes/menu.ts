@@ -17,5 +17,14 @@ menu.post('/:toolId', async (c) => {
     );
   }
 
+  if (!tool.menu) {
+    return c.json<UiResponse>(
+      {
+        showToast: `${tool.title} runs automatically`,
+      },
+      200
+    );
+  }
+
   return await tool.menu.handle(c);
 });

@@ -1,6 +1,6 @@
 export type ModToolCategory = 'publishing' | 'workflow';
 
-export type ModToolLaunchMode = 'menu' | 'form';
+export type ModToolLaunchMode = 'menu' | 'form' | 'trigger';
 
 export type ModToolDescriptor = {
   id: string;

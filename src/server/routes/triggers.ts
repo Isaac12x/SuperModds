@@ -1,7 +1,12 @@
 import { Hono } from 'hono';
-import type { OnAppInstallRequest, TriggerResponse } from '@devvit/web/shared';
+import type {
+  OnAppInstallRequest,
+  OnPostUpdateRequest,
+  TriggerResponse,
+} from '@devvit/web/shared';
 import { context } from '@devvit/web/server';
 import { createPost } from '../core/post';
+import { handleRedactedPostUpdate } from '../tools/redactedEditReporter';
 
 export const triggers = new Hono();
 
@@ -23,6 +28,30 @@ triggers.post('/on-app-install', async (c) => {
       {
         status: 'error',
         message: 'Failed to create post',
+      },
+      400
+    );
+  }
+});
+
+triggers.post('/on-post-update', async (c) => {
+  try {
+    const input = await c.req.json<OnPostUpdateRequest>();
+    const result = await handleRedactedPostUpdate(input);
+
+    return c.json<TriggerResponse>(
+      {
+        status: 'success',
+        message: `Redacted edit reporter ${result.status}: ${result.reason}`,
+      },
+      200
+    );
+  } catch (error) {
+    console.error(`Error processing post update: ${error}`);
+    return c.json<TriggerResponse>(
+      {
+        status: 'error',
+        message: 'Failed to process post update',
       },
       400
     );

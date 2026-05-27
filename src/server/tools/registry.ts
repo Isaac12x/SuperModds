@@ -4,6 +4,10 @@ import type { UiResponse } from '@devvit/web/shared';
 import { context } from '@devvit/web/server';
 import type { ModToolDescriptor } from '../../shared/modTools';
 import { createPost } from '../core/post';
+import {
+  REDACTED_EDIT_MIN_POST_AGE_DAYS,
+  REDACTED_EDIT_REPORT_REASON,
+} from './redactedEditReporter';
 
 type ToolMenuAction = {
   endpoint: string;
@@ -18,7 +22,7 @@ type ToolFormAction = {
 };
 
 type RegisteredModTool = ModToolDescriptor & {
-  menu: ToolMenuAction;
+  menu?: ToolMenuAction;
   form?: ToolFormAction;
 };
 
@@ -72,6 +76,13 @@ export const modTools: RegisteredModTool[] = [
         }
       },
     },
+  },
+  {
+    id: 'redacted-edit-reporter',
+    title: 'Redacted Edit Reporter',
+    description: `Automatically reports edits to posts older than ${REDACTED_EDIT_MIN_POST_AGE_DAYS} days when the new body contains no meaningful word content. Report reason: ${REDACTED_EDIT_REPORT_REASON}.`,
+    category: 'workflow',
+    launchMode: 'trigger',
   },
   {
     id: 'starter-note',
