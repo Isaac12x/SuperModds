@@ -46,6 +46,8 @@
   },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install",
+    "onPostSubmit": "/internal/triggers/on-post-submit",
+    "onCommentSubmit": "/internal/triggers/on-comment-submit",
     "onPostUpdate": "/internal/triggers/on-post-update"
   },
   "scripts": {

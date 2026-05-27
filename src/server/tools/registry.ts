@@ -4,6 +4,7 @@ import type { UiResponse } from '@devvit/web/shared';
 import { context } from '@devvit/web/server';
 import type { ModToolDescriptor } from '../../shared/modTools';
 import { createPost } from '../core/post';
+import { COPYRIGHT_FILTER_REASON } from './copyrightMaterialFilter';
 import {
   REDACTED_EDIT_MIN_POST_AGE_DAYS,
   REDACTED_EDIT_REPORT_REASON,
@@ -76,6 +77,13 @@ export const modTools: RegisteredModTool[] = [
         }
       },
     },
+  },
+  {
+    id: 'copyright-material-filter',
+    title: 'Copyright Material Filter',
+    description: `Automatically filters posts and replies with media links or uploads that match copyright-review signals into the mod queue. Filter reason: ${COPYRIGHT_FILTER_REASON}.`,
+    category: 'workflow',
+    launchMode: 'trigger',
   },
   {
     id: 'redacted-edit-reporter',
