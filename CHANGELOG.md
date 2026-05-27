@@ -17,3 +17,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - README documentation for the Redacted Edit Reporter and moderator usage workflow.
 - Redacted edit reporter trigger for flagging older post edits that remove meaningful word content.
 - Registered moderator tool architecture for Devvit menu actions, forms, and dashboard metadata.
+- User Workflow Builder for moderator-configured post, comment, and subcomment keyword workflows.

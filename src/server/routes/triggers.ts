@@ -24,6 +24,10 @@ import {
 import { handlePostFrequencyLimiterPostSubmit } from '../tools/postFrequencyLimiter';
 import { handleModmailSpamCloser } from '../tools/modmailSpamCloser';
 import { handleRedactedPostUpdate } from '../tools/redactedEditReporter';
+import {
+  handleUserWorkflowCommentSubmit,
+  handleUserWorkflowPostSubmit,
+} from '../tools/userWorkflowBuilder';
 
 export const triggers = new Hono();
 
@@ -78,6 +82,21 @@ triggers.post('/on-post-submit', async (c) => {
       );
     }
 
+    const workflowResult = await handleUserWorkflowPostSubmit(input);
+
+    if (workflowResult.status === 'acted') {
+      return c.json<TriggerResponse>(
+        {
+          status: 'success',
+          message:
+            `Post frequency limiter ${frequencyLimitResult.status}: ${frequencyLimitResult.reason}; ` +
+            `New subreddit bot guard ${botGuardResult.status}: ${botGuardResult.reason}; ` +
+            `User workflow builder ${workflowResult.status}: ${workflowResult.reason}`,
+        },
+        200
+      );
+    }
+
     const [copyrightResult, adultImageResult] = await Promise.all([
       handleCopyrightPostSubmit(input),
       handleAdultImagePostSubmit(input),
@@ -89,6 +108,7 @@ triggers.post('/on-post-submit', async (c) => {
         message:
           `Post frequency limiter ${frequencyLimitResult.status}: ${frequencyLimitResult.reason}; ` +
           `New subreddit bot guard ${botGuardResult.status}: ${botGuardResult.reason}; ` +
+          `User workflow builder ${workflowResult.status}: ${workflowResult.reason}; ` +
           `Copyright material filter ${copyrightResult.status}: ${copyrightResult.reason}; ` +
           `+18 image review filter ${adultImageResult.status}: ${adultImageResult.reason}`,
       },
@@ -121,6 +141,20 @@ triggers.post('/on-comment-submit', async (c) => {
       );
     }
 
+    const workflowResult = await handleUserWorkflowCommentSubmit(input);
+
+    if (workflowResult.status === 'acted') {
+      return c.json<TriggerResponse>(
+        {
+          status: 'success',
+          message:
+            `New subreddit bot guard ${botGuardResult.status}: ${botGuardResult.reason}; ` +
+            `User workflow builder ${workflowResult.status}: ${workflowResult.reason}`,
+        },
+        200
+      );
+    }
+
     const [copyrightResult, adultImageResult] = await Promise.all([
       handleCopyrightCommentSubmit(input),
       handleAdultImageCommentSubmit(input),
@@ -131,6 +165,7 @@ triggers.post('/on-comment-submit', async (c) => {
         status: 'success',
         message:
           `New subreddit bot guard ${botGuardResult.status}: ${botGuardResult.reason}; ` +
+          `User workflow builder ${workflowResult.status}: ${workflowResult.reason}; ` +
           `Copyright material filter ${copyrightResult.status}: ${copyrightResult.reason}; ` +
           `+18 image review filter ${adultImageResult.status}: ${adultImageResult.reason}`,
       },

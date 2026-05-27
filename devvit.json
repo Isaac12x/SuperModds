@@ -32,11 +32,19 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/starter-note"
+      },
+      {
+        "label": "Configure user workflows",
+        "description": "Create keyword workflows for posts, comments, and subcomments.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/user-workflow-builder"
       }
     ]
   },
   "forms": {
-    "starterNoteForm": "/internal/form/starterNoteForm"
+    "starterNoteForm": "/internal/form/starterNoteForm",
+    "userWorkflowForm": "/internal/form/userWorkflowForm"
   },
   "permissions": {
     "http": {

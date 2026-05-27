@@ -12,6 +12,12 @@ import {
 } from './redactedEditReporter';
 import { NEW_SUBREDDIT_BOT_GUARD_REASON } from './newSubredditBotGuard';
 import { MODMAIL_SPAM_CLOSER_REASON } from './modmailSpamCloser';
+import {
+  openUserWorkflowForm,
+  saveUserWorkflowForm,
+  userWorkflowForm,
+  USER_WORKFLOW_BUILDER_REASON,
+} from './userWorkflowBuilder';
 import { POST_FREQUENCY_LIMITER_REASON } from './postFrequencyLimiter';
 
 type ToolMenuAction = {
@@ -33,6 +39,17 @@ type RegisteredModTool = ModToolDescriptor & {
 
 type StarterNoteFormValues = {
   message?: string;
+};
+
+type UserWorkflowFormValues = {
+  enabled?: boolean;
+  postKeywords?: string;
+  postAction?: string[];
+  commentKeywords?: string;
+  commentAction?: string[];
+  subcommentKeywords?: string;
+  subcommentAction?: string[];
+  joinWorkflowStatus?: string;
 };
 
 const starterNoteForm: Form = {
@@ -123,6 +140,44 @@ export const modTools: RegisteredModTool[] = [
     description: `Automatically archives bot appeals and spammy modmail conversations from user participants, leaving an internal audit note. Close reason: ${MODMAIL_SPAM_CLOSER_REASON}.`,
     category: 'workflow',
     launchMode: 'trigger',
+  },
+  {
+    id: 'user-workflow-builder',
+    title: 'User Workflow Builder',
+    description: `Lets moderators configure keyword workflows for posts, top-level comments, and subcomments. Matching content can be filtered, removed, or removed as spam. Join workflows are not available because current Devvit Web triggers do not include subreddit join events. Default reason: ${USER_WORKFLOW_BUILDER_REASON}.`,
+    category: 'workflow',
+    launchMode: 'form',
+    menu: {
+      endpoint: '/internal/menu/user-workflow-builder',
+      handle: async () =>
+        Response.json(
+          {
+            showForm: {
+              name: 'userWorkflowForm',
+              form: await openUserWorkflowForm(),
+            },
+          } satisfies UiResponse,
+          { status: 200 }
+        ),
+    },
+    form: {
+      name: 'userWorkflowForm',
+      endpoint: '/internal/form/userWorkflowForm',
+      form: userWorkflowForm,
+      handle: async (c) => {
+        const values = await c.req.json<UserWorkflowFormValues>();
+        const result = await saveUserWorkflowForm(values);
+
+        return Response.json(
+          {
+            showToast: result.enabled
+              ? `User workflows enabled with ${result.ruleCount} keywords`
+              : `User workflows disabled with ${result.ruleCount} saved keywords`,
+          } satisfies UiResponse,
+          { status: 200 }
+        );
+      },
+    },
   },
   {
     id: 'starter-note',

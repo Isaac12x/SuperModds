@@ -210,6 +210,36 @@ Modmail spam closer: automated appeal or spam conversation
 - Deduplicates closed conversations for 30 days in Redis.
 - Can be disabled per subreddit with `modmailSpamCloserEnabled`.
 
+### User Workflow Builder
+
+Menu action: `Configure user workflows`
+
+Trigger events: `PostSubmit`, `CommentSubmit`
+
+The User Workflow Builder lets moderators create keyword workflows for new
+posts, top-level comments, and subcomments. Moderators open the subreddit menu
+action, add one keyword per line or comma-separated keywords for each surface,
+choose an action, and save the configuration.
+
+Current behavior:
+
+- Stores workflow configuration in Redis for the subreddit installation.
+- Separates comments from subcomments by checking whether the comment parent is
+  a post or another comment.
+- Applies the first matching surface workflow to new submissions.
+- Supports filtering to the mod queue, removing, or removing as spam.
+- Deduplicates acted-on content for 30 days.
+- Runs after the post frequency limiter and new subreddit bot guard. If a user
+  workflow acts on content, OpenAI-backed post/comment scans are skipped for
+  that event.
+
+Limitations:
+
+- User-join workflows are shown as unavailable in the configuration form. The
+  current Devvit Web trigger list includes post/comment, moderator, modmail, app
+  install/upgrade, and Automoderator events, but does not include a subreddit
+  join/subscribe trigger.
+
 ## Registered Entrypoints
 
 The Devvit app configuration in `devvit.json` currently registers:
@@ -220,8 +250,10 @@ The Devvit app configuration in `devvit.json` currently registers:
 - Subreddit moderator menu actions:
   - `Create Supermodds post`
   - `Create moderator note`
+  - `Configure user workflows`
 - Form:
   - `starterNoteForm`
+  - `userWorkflowForm`
 - Triggers:
   - `onAppInstall`
   - `onPostSubmit`
