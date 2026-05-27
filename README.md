@@ -4,6 +4,31 @@ Supermodds is a Devvit web moderator tool for Reddit communities. It provides a 
 
 ## Tools
 
+### Copyright Material Filter
+
+The Copyright Material Filter is an automatic moderation trigger for media copyright review.
+
+It listens for Reddit `PostSubmit` and `CommentSubmit` events. When submitted content contains uploaded media or media URLs, Supermodds sends the post or reply metadata to the configured OpenAI Responses API model for copyright classification. If the provider returns a likely copyright-review match, Supermodds filters the content into the mod queue with this reason:
+
+```text
+Possible copyrighted media: review required
+```
+
+Current detection flow:
+
+- Text-only content is skipped before calling the external API.
+- Media posts and replies are classified by OpenAI using the title, body, provider metadata, and media URLs available in the Devvit trigger payload.
+- A post or reply is filtered at most once by this tool within the 30-day dedupe window.
+- Moderators can disable the tool per subreddit with the `copyrightMaterialFilterEnabled` setting.
+
+To configure the external API, set the global secret `openaiApiKey` after the app has been built and installed:
+
+```sh
+npx devvit settings set openaiApiKey
+```
+
+The default model is configured by the global `copyrightScanModel` setting.
+
 ### Redacted Edit Reporter
 
 The Redacted Edit Reporter is an automatic moderation trigger for mass post-redaction edits.
@@ -33,6 +58,12 @@ The tool does not remove, spam, approve, or edit posts. It only places matching 
 5. Use the Supermodds dashboard post to confirm the tool is registered as `redacted-edit-reporter`.
 
 No moderator menu click is required for the Redacted Edit Reporter. It is an automatic trigger-backed tool.
+
+## Fetch Domains
+
+The following domains are requested for this app:
+
+- `api.openai.com` - Used server-side by the Copyright Material Filter to classify submitted media posts and replies for copyright-review signals before routing matches to the mod queue.
 
 ## Tech Stack
 

@@ -4,7 +4,7 @@ import type {
   PostV2,
   CommentV2,
 } from '@devvit/web/shared';
-import { reddit, redis } from '@devvit/web/server';
+import { reddit, redis, settings } from '@devvit/web/server';
 import {
   T1 as asT1ID,
   T3 as asT3ID,
@@ -17,8 +17,15 @@ import {
 export const COPYRIGHT_FILTER_REASON =
   'Possible copyrighted media: review required';
 
+export const COPYRIGHT_SCAN_API_KEY_SETTING = 'openaiApiKey';
+export const COPYRIGHT_SCAN_MODEL_SETTING = 'copyrightScanModel';
+export const COPYRIGHT_FILTER_ENABLED_SETTING =
+  'copyrightMaterialFilterEnabled';
+
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const DEDUPE_TTL_DAYS = 30;
+const OPENAI_RESPONSES_API_URL = 'https://api.openai.com/v1/responses';
+const DEFAULT_COPYRIGHT_SCAN_MODEL = 'gpt-4.1-mini';
 
 const URL_PATTERN = /\b(?:https?:\/\/|www\.)[^\s<>"')\]]+/giu;
 
@@ -94,8 +101,14 @@ const COPYRIGHT_SIGNAL_PATTERNS = [
   /\b(?:poster|scan|artwork|photo|photograph|illustration|cover art)\b/iu,
 ];
 
-type CopyrightReview = {
+type MediaCandidateReview = {
+  shouldScan: boolean;
+  reason: string;
+};
+
+type CopyrightScanResult = {
   shouldFilter: boolean;
+  confidence: number;
   reason: string;
 };
 
@@ -168,7 +181,7 @@ export const reviewCopyrightMaterial = ({
   textParts,
   urls,
   hasNativeMedia,
-}: MediaReviewInput): CopyrightReview => {
+}: MediaReviewInput): MediaCandidateReview => {
   const combinedText = textParts.filter(Boolean).join('\n');
   const linkedUrls = [...urls, ...getUrlsFromText(combinedText)];
   const hasMediaUrl = linkedUrls.some(isMediaUrl);
@@ -176,7 +189,7 @@ export const reviewCopyrightMaterial = ({
 
   if (!hasMedia) {
     return {
-      shouldFilter: false,
+      shouldScan: false,
       reason: 'content does not contain media',
     };
   }
@@ -185,7 +198,7 @@ export const reviewCopyrightMaterial = ({
 
   if (signal) {
     return {
-      shouldFilter: true,
+      shouldScan: true,
       reason: `matched copyright signal ${signal.source}`,
     };
   }
@@ -196,15 +209,233 @@ export const reviewCopyrightMaterial = ({
 
   if (hasMusicOrVideoLink) {
     return {
-      shouldFilter: true,
+      shouldScan: true,
       reason: 'contains a known music or video media URL',
     };
   }
 
   return {
-    shouldFilter: false,
-    reason: 'media did not match copyright review signals',
+    shouldScan: true,
+    reason: 'contains media that requires external copyright classification',
   };
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const getStringProperty = (
+  record: Record<string, unknown>,
+  propertyName: string
+) => {
+  const value = record[propertyName];
+
+  return typeof value === 'string' ? value : undefined;
+};
+
+const getNumberProperty = (
+  record: Record<string, unknown>,
+  propertyName: string
+) => {
+  const value = record[propertyName];
+
+  return typeof value === 'number' ? value : undefined;
+};
+
+const getBooleanProperty = (
+  record: Record<string, unknown>,
+  propertyName: string
+) => {
+  const value = record[propertyName];
+
+  return typeof value === 'boolean' ? value : undefined;
+};
+
+const getSettingString = async (settingName: string, fallback = '') => {
+  const value = await settings.get(settingName);
+
+  return typeof value === 'string' ? value.trim() : fallback;
+};
+
+const isCopyrightFilterEnabled = async () => {
+  const value = await settings.get(COPYRIGHT_FILTER_ENABLED_SETTING);
+
+  return typeof value === 'boolean' ? value : true;
+};
+
+const extractOpenAIOutputText = (data: unknown) => {
+  if (!isRecord(data)) {
+    return undefined;
+  }
+
+  const outputText = getStringProperty(data, 'output_text');
+
+  if (outputText) {
+    return outputText;
+  }
+
+  const output = data.output;
+
+  if (!Array.isArray(output)) {
+    return undefined;
+  }
+
+  for (const outputItem of output) {
+    if (!isRecord(outputItem) || !Array.isArray(outputItem.content)) {
+      continue;
+    }
+
+    for (const contentItem of outputItem.content) {
+      if (!isRecord(contentItem)) {
+        continue;
+      }
+
+      const text = getStringProperty(contentItem, 'text');
+
+      if (text) {
+        return text;
+      }
+    }
+  }
+
+  return undefined;
+};
+
+const parseCopyrightScanResult = (
+  outputText: string
+): CopyrightScanResult | undefined => {
+  try {
+    const parsed: unknown = JSON.parse(outputText);
+
+    if (!isRecord(parsed)) {
+      return undefined;
+    }
+
+    const shouldFilter = getBooleanProperty(parsed, 'shouldFilter');
+    const confidence = getNumberProperty(parsed, 'confidence');
+    const reason = getStringProperty(parsed, 'reason');
+
+    if (
+      typeof shouldFilter !== 'boolean' ||
+      typeof confidence !== 'number' ||
+      typeof reason !== 'string'
+    ) {
+      return undefined;
+    }
+
+    return {
+      shouldFilter,
+      confidence,
+      reason,
+    };
+  } catch {
+    return undefined;
+  }
+};
+
+const getOpenAIRequestBody = (input: MediaReviewInput, candidateReason: string) => ({
+  model: DEFAULT_COPYRIGHT_SCAN_MODEL,
+  store: false,
+  instructions:
+    'You are a copyright moderation classifier for Reddit moderators. ' +
+    'Decide whether the submitted post or reply likely contains copyrighted image, video, or song material that should be sent to a moderator queue for human review. ' +
+    'Use only the provided title, text, metadata, provider names, and URLs. Do not claim legal certainty. ' +
+    'Return shouldFilter true only when there is a concrete copyright review signal, such as an uploaded or linked song/music video, official media repost, full movie/episode/album, scan, cover art, or explicit copyright/DMCA wording.',
+  input: JSON.stringify({
+    candidateReason,
+    textParts: input.textParts,
+    urls: input.urls,
+    hasNativeMedia: input.hasNativeMedia,
+  }),
+  text: {
+    format: {
+      type: 'json_schema',
+      name: 'copyright_scan_result',
+      strict: true,
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          shouldFilter: {
+            type: 'boolean',
+            description:
+              'Whether moderators should review this content for likely copyrighted media.',
+          },
+          confidence: {
+            type: 'number',
+            description: 'Confidence in the classification.',
+          },
+          reason: {
+            type: 'string',
+            description: 'Short moderation-facing reason.',
+          },
+        },
+        required: ['shouldFilter', 'confidence', 'reason'],
+      },
+    },
+  },
+});
+
+const scanWithOpenAI = async (
+  input: MediaReviewInput,
+  candidateReason: string
+): Promise<CopyrightScanResult> => {
+  const [apiKey, configuredModel] = await Promise.all([
+    getSettingString(COPYRIGHT_SCAN_API_KEY_SETTING),
+    getSettingString(COPYRIGHT_SCAN_MODEL_SETTING, DEFAULT_COPYRIGHT_SCAN_MODEL),
+  ]);
+
+  if (!apiKey) {
+    return {
+      shouldFilter: false,
+      confidence: 0,
+      reason: `OpenAI API key is not configured in ${COPYRIGHT_SCAN_API_KEY_SETTING}`,
+    };
+  }
+
+  const requestBody = {
+    ...getOpenAIRequestBody(input, candidateReason),
+    model: configuredModel || DEFAULT_COPYRIGHT_SCAN_MODEL,
+  };
+
+  const response = await fetch(OPENAI_RESPONSES_API_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    return {
+      shouldFilter: false,
+      confidence: 0,
+      reason: `OpenAI copyright scan failed with HTTP ${response.status}`,
+    };
+  }
+
+  const data: unknown = await response.json();
+  const outputText = extractOpenAIOutputText(data);
+
+  if (!outputText) {
+    return {
+      shouldFilter: false,
+      confidence: 0,
+      reason: 'OpenAI copyright scan returned no text output',
+    };
+  }
+
+  const result = parseCopyrightScanResult(outputText);
+
+  if (!result) {
+    return {
+      shouldFilter: false,
+      confidence: 0,
+      reason: 'OpenAI copyright scan returned invalid structured output',
+    };
+  }
+
+  return result;
 };
 
 const getPostId = (post: PostV2 | undefined) => {
@@ -306,6 +537,13 @@ const filterForCopyrightReview = async (
 export const handleCopyrightPostSubmit = async (
   input: OnPostSubmitRequest
 ): Promise<FilterResult> => {
+  if (!(await isCopyrightFilterEnabled())) {
+    return {
+      status: 'skipped',
+      reason: 'copyright material filter is disabled for this subreddit',
+    };
+  }
+
   const post = input.post;
   const postId = getPostId(post);
 
@@ -316,9 +554,10 @@ export const handleCopyrightPostSubmit = async (
     };
   }
 
-  const review = reviewCopyrightMaterial(getPostReviewInput(post));
+  const reviewInput = getPostReviewInput(post);
+  const review = reviewCopyrightMaterial(reviewInput);
 
-  if (!review.shouldFilter) {
+  if (!review.shouldScan) {
     return {
       status: 'skipped',
       reason: review.reason,
@@ -326,12 +565,32 @@ export const handleCopyrightPostSubmit = async (
     };
   }
 
-  return filterForCopyrightReview(postId, review.reason);
+  const scan = await scanWithOpenAI(reviewInput, review.reason);
+
+  if (!scan.shouldFilter) {
+    return {
+      status: 'skipped',
+      reason: scan.reason,
+      thingId: postId,
+    };
+  }
+
+  return filterForCopyrightReview(
+    postId,
+    `OpenAI copyright scan (${scan.confidence}): ${scan.reason}`
+  );
 };
 
 export const handleCopyrightCommentSubmit = async (
   input: OnCommentSubmitRequest
 ): Promise<FilterResult> => {
+  if (!(await isCopyrightFilterEnabled())) {
+    return {
+      status: 'skipped',
+      reason: 'copyright material filter is disabled for this subreddit',
+    };
+  }
+
   const comment = input.comment;
   const commentId = getCommentId(comment);
 
@@ -342,9 +601,10 @@ export const handleCopyrightCommentSubmit = async (
     };
   }
 
-  const review = reviewCopyrightMaterial(getCommentReviewInput(comment));
+  const reviewInput = getCommentReviewInput(comment);
+  const review = reviewCopyrightMaterial(reviewInput);
 
-  if (!review.shouldFilter) {
+  if (!review.shouldScan) {
     return {
       status: 'skipped',
       reason: review.reason,
@@ -352,5 +612,18 @@ export const handleCopyrightCommentSubmit = async (
     };
   }
 
-  return filterForCopyrightReview(commentId, review.reason);
+  const scan = await scanWithOpenAI(reviewInput, review.reason);
+
+  if (!scan.shouldFilter) {
+    return {
+      status: 'skipped',
+      reason: scan.reason,
+      thingId: commentId,
+    };
+  }
+
+  return filterForCopyrightReview(
+    commentId,
+    `OpenAI copyright scan (${scan.confidence}): ${scan.reason}`
+  );
 };

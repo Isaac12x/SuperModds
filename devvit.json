@@ -39,9 +39,35 @@
     "starterNoteForm": "/internal/form/starterNoteForm"
   },
   "permissions": {
+    "http": {
+      "enable": true,
+      "domains": ["api.openai.com"]
+    },
     "reddit": {
       "enable": true,
       "scope": "moderator"
+    }
+  },
+  "settings": {
+    "global": {
+      "openaiApiKey": {
+        "type": "string",
+        "label": "OpenAI API Key",
+        "defaultValue": "",
+        "isSecret": true
+      },
+      "copyrightScanModel": {
+        "type": "string",
+        "label": "Copyright scan model",
+        "defaultValue": "gpt-4.1-mini"
+      }
+    },
+    "subreddit": {
+      "copyrightMaterialFilterEnabled": {
+        "type": "boolean",
+        "label": "Enable copyright material filter",
+        "defaultValue": true
+      }
     }
   },
   "triggers": {

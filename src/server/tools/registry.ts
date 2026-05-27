@@ -81,7 +81,7 @@ export const modTools: RegisteredModTool[] = [
   {
     id: 'copyright-material-filter',
     title: 'Copyright Material Filter',
-    description: `Automatically filters posts and replies with media links or uploads that match copyright-review signals into the mod queue. Filter reason: ${COPYRIGHT_FILTER_REASON}.`,
+    description: `Uses the configured OpenAI API key to classify media posts and replies for copyright-review signals, then filters matches into the mod queue. Filter reason: ${COPYRIGHT_FILTER_REASON}.`,
     category: 'workflow',
     launchMode: 'trigger',
   },
